@@ -1,0 +1,202 @@
+local StarterGui = game:GetService("StarterGui")
+
+local function sendNotification(title, text, duration)
+	duration = duration or 5
+	local config = {
+		Title = title,
+		Text = text,
+		Duration = duration,
+		Icon = "rbxassetid://0",
+	}
+
+	task.spawn(function()
+		local success = false
+		while not success do
+			success = pcall(function()
+				StarterGui:SetCore("SendNotification", config)
+			end)
+			if not success then
+				task.wait(0.2)
+			end
+		end
+	end)
+end
+
+sendNotification("The Hunt Natural Disaster Exploit", "Cheat executed!")
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local UserInputService = game:GetService("UserInputService")
+
+local NPCS = workspace:WaitForChild("NPCs")
+local animals = {}
+local isSearchSuccess = false
+
+local function SearchAnimal()
+	table.clear(animals)
+	sendNotification("Searching animals..", "searching...")
+	task.wait(0.5)
+
+	for i, animal in ipairs(NPCS:GetDescendants()) do
+		if animal:IsA("Model") then
+			table.insert(animals, animal)
+		end
+	end
+
+	if #animals ~= 0 then
+		sendNotification("Search complete", "Found " .. #animals .. " animals.")
+		isSearchSuccess = true
+	else
+		sendNotification("Search complete", "didn't find any")
+		isSearchSuccess = false
+	end
+end
+
+local function TeleportToAnimal()
+	if not isSearchSuccess or #animals == 0 then
+		sendNotification("Error", "did not search first or no animals found.")
+		return
+	end
+
+	local randomIndex = math.random(1, #animals)
+	local randomAnimal = animals[randomIndex]
+	
+	local hrp = randomAnimal:FindFirstChild("HumanoidRootPart")
+	local plrChar = player.Character or player.CharacterAdded:Wait()
+	local plrHrp = plrChar:FindFirstChild("HumanoidRootPart")
+
+	if hrp and plrHrp then
+		plrHrp.CFrame = hrp.CFrame
+		sendNotification("Teleport Success", "teleported to: " .. randomAnimal.Name)
+	else
+		sendNotification("Teleport Error", "target animal is missing HumanoidRootPart.")
+	end
+end
+
+local screenGui = playerGui:WaitForChild("MainGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "AnimalMenuContainer"
+mainFrame.Size = UDim2.new(1, 0, 1, 0)
+mainFrame.Position = UDim2.new(0, 0, 0, 0)
+mainFrame.BackgroundTransparency = 1
+mainFrame.Active = false
+mainFrame.Parent = screenGui
+
+local checkButton = Instance.new("TextButton")
+checkButton.Size = UDim2.new(0, 120, 0, 50)
+checkButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+checkButton.BackgroundColor3 = Color3.fromRGB(230, 126, 34)
+checkButton.Text = "Check Animal"
+checkButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+checkButton.TextScaled = true
+checkButton.Modal = false
+checkButton.Active = true
+checkButton.Parent = mainFrame
+
+local drag1_dragging = false
+local drag1_input, drag1_start, drag1_startPos
+
+checkButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		drag1_dragging = true
+		drag1_start = input.Position
+		drag1_startPos = checkButton.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				drag1_dragging = false
+			end
+		end)
+	end
+end)
+
+checkButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		drag1_input = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == drag1_input and drag1_dragging then
+		local delta = input.Position - drag1_start
+		checkButton.Position = UDim2.new(
+			drag1_startPos.X.Scale, 
+			drag1_startPos.X.Offset + delta.X, 
+			drag1_startPos.Y.Scale, 
+			drag1_startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+checkButton.MouseButton1Click:Connect(function()
+	SearchAnimal()
+end)
+
+local teleportButton = Instance.new("TextButton")
+teleportButton.Size = UDim2.new(0, 120, 0, 50)
+teleportButton.Position = UDim2.new(0.1, 0, 0.52, 0)
+teleportButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+teleportButton.Text = "Teleport Animal"
+teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+teleportButton.TextScaled = true
+teleportButton.Modal = false
+teleportButton.Active = true
+teleportButton.Parent = mainFrame
+
+local drag2_dragging = false
+local drag2_input, drag2_start, drag2_startPos
+
+teleportButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		drag2_dragging = true
+		drag2_start = input.Position
+		drag2_startPos = teleportButton.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				drag2_dragging = false
+			end
+		end)
+	end
+end)
+
+teleportButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		drag2_input = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == drag2_input and drag2_dragging then
+		local delta = input.Position - drag2_start
+		teleportButton.Position = UDim2.new(
+			drag2_startPos.X.Scale, 
+			drag2_startPos.X.Offset + delta.X, 
+			drag2_startPos.Y.Scale, 
+			drag2_startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+teleportButton.MouseButton1Click:Connect(function()
+	TeleportToAnimal()
+end)
+
+local exitButton = Instance.new("TextButton")
+
+exitButton.Size = UDim2.new(0, 40, 0, 40)
+exitButton.Position = UDim2.new(0.95, 0, 0.05, 0)
+
+exitButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+exitButton.BorderSizePixel = 0
+exitButton.Text = "X"
+exitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+exitButton.TextScaled = true
+exitButton.Parent = mainFrame
+
+exitButton.MouseButton1Click:Connect(function()
+	mainFrame:Destroy()
+	script:Destroy()
+end)
